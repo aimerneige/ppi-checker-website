@@ -153,6 +153,28 @@ export function evaluate(
   };
 }
 
+/** Largest print (mm) the image can make at `ppi` without upscaling. */
+export function maxPrintSize(imgW: number, imgH: number, ppi: number) {
+  return { w: (imgW / ppi) * MM_PER_INCH, h: (imgH / ppi) * MM_PER_INCH };
+}
+
+/** The biggest (by area) of `sizes` that still reaches `ppi` with the given mode / rotation, or null. */
+export function largestFitting<T extends PrintSize>(
+  sizes: T[],
+  imgW: number,
+  imgH: number,
+  ppi: number,
+  mode: FitMode,
+  autoRotate: boolean,
+): T | null {
+  let best: T | null = null;
+  for (const s of sizes) {
+    if (statusFor(evaluate(imgW, imgH, s, mode, autoRotate, ppi).ppi, ppi) !== 'pass') continue;
+    if (!best || s.w * s.h > best.w * best.h) best = s;
+  }
+  return best;
+}
+
 /**
  * Suggested ppi based on typical viewing distance (≈1.5× the diagonal, at least 30 cm)
  * and ~1 arc-minute visual acuity with some headroom. Clamped to 100–300.

@@ -1,11 +1,13 @@
 import { fmt, getLocale, t, tDynamic } from './i18n';
 import { icon } from './icons';
 import { escapeHtml as esc } from './components/menu';
-import { allSizes, findSize, type State } from './store';
+import { allSizes, findSize, TARGET_PRESETS, type State } from './store';
 import {
   aspectLabel,
   CATEGORIES,
   evaluate,
+  largestFitting,
+  maxPrintSize,
   recommendedPpi,
   toUnit,
   type Evaluation,
@@ -134,6 +136,55 @@ function imageCard(s: State) {
           <dd>${img.embeddedDpi ? `${fmt(img.embeddedDpi)} dpi` : esc(t('image.embeddedNone'))}</dd></div>
       </dl>
     </div>
+  </section>`;
+}
+
+function maxPrintCard(s: State) {
+  const img = s.image!;
+  const ppi = s.maxPpi;
+  const { w, h } = maxPrintSize(img.width, img.height, ppi);
+  const other: Unit = s.unit === 'cm' ? 'in' : 'cm';
+  const best = largestFitting(allSizes(s), img.width, img.height, ppi, s.mode, s.autoRotate);
+  const isPreset = (TARGET_PRESETS as readonly number[]).includes(ppi);
+  const chip = (value: string, label: string, selected: boolean, ic: 'check' | 'edit' = 'check') =>
+    `<button type="button" class="filter-chip ripple" data-action="max-ppi" data-value="${value}" aria-pressed="${selected}">
+      ${selected || ic === 'edit' ? icon(selected ? 'check' : ic) : ''}<span>${esc(label)}</span></button>`;
+  const chips = [
+    ...TARGET_PRESETS.map((p) => chip(String(p), fmt(p), p === ppi)),
+    chip('custom', isPreset ? t('maxPrint.custom') : `${fmt(ppi)} ppi`, !isPreset, 'edit'),
+  ].join('');
+  const fit = best
+    ? `<button type="button" class="maxprint__fit ripple" data-action="size" data-value="${best.id}" ${tip(t('maxPrint.select'))}>
+        <span class="maxprint__fit-text">
+          <span class="maxprint__fit-label">${esc(t('maxPrint.bestFit'))}</span>
+          <span class="maxprint__fit-name">${esc(sizeName(best))}</span>
+          <span class="maxprint__fit-dims">${esc(dims(best.w, best.h, s.unit, best.native))}</span>
+        </span>
+        ${icon('expand', 'maxprint__fit-arrow')}
+      </button>`
+    : `<div class="maxprint__fit is-none">
+        <span class="maxprint__fit-text">
+          <span class="maxprint__fit-label">${esc(t('maxPrint.bestFit'))}</span>
+          <span class="maxprint__fit-name">${esc(t('maxPrint.bestFitNone'))}</span>
+        </span>
+      </div>`;
+  return `<section class="card card--maxprint" data-key="maxprint">
+    <div class="card__head">
+      <h2 class="card__title">${esc(t('maxPrint.title'))}</h2>
+      <p class="card__subtitle">${esc(t('maxPrint.subtitle'))}</p>
+    </div>
+    <div class="filter-chips" role="group" aria-label="${esc(t('maxPrint.ppiLabel'))}">
+      <span class="filter-chips__label">${esc(t('maxPrint.ppiLabel'))}</span>${chips}
+    </div>
+    <div class="maxprint__main">
+      <div class="maxprint__result">
+        <div class="result__label">${esc(t('maxPrint.result', { ppi: fmt(ppi) }))}</div>
+        <div class="maxprint__value">${num(toUnit(w, s.unit), s.unit)} × ${num(toUnit(h, s.unit), s.unit)}<small>${s.unit}</small></div>
+        <div class="maxprint__alt">${esc(dims(w, h, other))} · ${esc(t('maxPrint.diagonal', { d: `${fmt(toUnit(Math.hypot(w, h), s.unit), s.unit === 'cm' ? 1 : 2)} ${s.unit}` }))}</div>
+      </div>
+      ${fit}
+    </div>
+    <p class="setting__hint">${esc(t('maxPrint.hint'))}</p>
   </section>`;
 }
 
@@ -364,6 +415,7 @@ export function view(s: State) {
   <main class="layout">
     <div class="layout__primary">
       ${imageCard(s)}
+      ${s.image ? maxPrintCard(s) : ''}
       ${resultCard(s)}
     </div>
     <div class="layout__secondary">

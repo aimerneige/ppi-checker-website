@@ -8,6 +8,8 @@ export interface Settings {
   category: Category;
   /** A ppi number, or 'auto' to use the viewing-distance recommendation. */
   target: number | 'auto';
+  /** PPI used by the "largest print size" calculator. */
+  maxPpi: number;
   mode: FitMode;
   unit: Unit;
   autoRotate: boolean;
@@ -27,6 +29,7 @@ function loadSettings(defaultUnit: Unit): Settings {
     sizeId: DEFAULT_SIZE_ID,
     category: 'photo',
     target: 300,
+    maxPpi: 300,
     mode: 'fill',
     unit: defaultUnit,
     autoRotate: true,
@@ -44,6 +47,7 @@ function loadSettings(defaultUnit: Unit): Settings {
     if (s.unit !== 'cm' && s.unit !== 'in') s.unit = defaultUnit;
     if (s.mode !== 'fill' && s.mode !== 'fit') s.mode = 'fill';
     if (s.target !== 'auto' && !(typeof s.target === 'number' && s.target >= 50 && s.target <= 1200)) s.target = 300;
+    if (!(typeof s.maxPpi === 'number' && s.maxPpi >= 50 && s.maxPpi <= 1200)) s.maxPpi = 300;
     if (![...PRESETS, ...s.customSizes].some((p) => p.id === s.sizeId)) s.sizeId = DEFAULT_SIZE_ID;
     return s;
   } catch {

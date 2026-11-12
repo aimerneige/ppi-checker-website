@@ -215,9 +215,12 @@ function targetMenu(anchor: HTMLElement) {
 
 function customTargetDialog() {
   const s = store.get();
-  const current = typeof s.target === 'number' ? s.target : 300;
+  customPpiDialog(t('target.customTitle'), typeof s.target === 'number' ? s.target : 300, (v) => store.set({ target: v }));
+}
+
+function customPpiDialog(title: string, current: number, apply: (ppi: number) => void) {
   openDialog({
-    title: t('target.customTitle'),
+    title,
     icon: 'print',
     body: textField({
       id: 'f-ppi',
@@ -239,7 +242,7 @@ function customTargetDialog() {
             setFieldError(root, 'f-ppi', t('target.customHelper'));
             return false;
           }
-          store.set({ target: Math.round(v) });
+          apply(Math.round(v));
         },
       },
     ],
@@ -393,9 +396,13 @@ app.addEventListener('click', async (e) => {
       break;
     case 'size': {
       const size = allSizes(s).find((p) => p.id === value);
-      if (size) store.set({ sizeId: size.id });
+      if (size) store.set({ sizeId: size.id, category: size.category });
       break;
     }
+    case 'max-ppi':
+      if (value === 'custom') customPpiDialog(t('maxPrint.customTitle'), s.maxPpi, (v) => store.set({ maxPpi: v }));
+      else store.set({ maxPpi: Number(value) });
+      break;
     case 'add-custom':
       customSizeDialog();
       break;
